@@ -7,7 +7,6 @@ import (
 )
 
 type PassHandler struct {
-	Servername string
 	*http.Transport
 }
 

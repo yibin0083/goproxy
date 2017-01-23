@@ -49,6 +49,18 @@ type Config struct {
 	}
 }
 
+type Handler struct {
+	Handlers map[string]http.Handler
+}
+
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	handler, ok := h.Handlers[req.TLS.ServerName]
+	if !ok {
+		http.Error(rw, "403 Forbidden", http.StatusForbidden)
+	}
+	handler.ServeHTTP(rw, req)
+}
+
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "-version" {
 		fmt.Print(version)
@@ -115,22 +127,30 @@ func main() {
 		DisableCompression:  false,
 	}
 
-	server := config.Server[0]
-
-	handler := &LocalHandler{
-		ServerName: server.ServerName,
-		Transport:  transport,
-	}
-
-	if server.ProxyFallback != "" {
-		handler.Fallback, err = url.Parse(server.ProxyFallback)
-		if err != nil {
-			glog.Fatalf("url.Parse(%+v) error: %+v", server.ProxyFallback, err)
-		}
-	}
-
 	domains := []string{}
+	handlers := map[string]http.Handler{}
 	for _, server := range config.Server {
+		switch server.ProxyMode {
+		case "local":
+			handler := &LocalHandler{
+				Transport: transport,
+			}
+
+			if server.ProxyFallback != "" {
+				handler.Fallback, err = url.Parse(server.ProxyFallback)
+				if err != nil {
+					glog.Fatalf("url.Parse(%+v) error: %+v", server.ProxyFallback, err)
+				}
+			}
+			handlers[server.ServerName] = handler
+		case "pass":
+			handler := &PassHandler{
+				Transport: transport,
+			}
+			handlers[server.ServerName] = handler
+		default:
+			glog.Infof("Unsupported proxy_mode(%+v) of %#v", server.ProxyMode, server)
+		}
 		domains = append(domains, server.ServerName)
 	}
 
@@ -141,7 +161,9 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Handler: handler,
+		Handler: &Handler{
+			Handlers: handlers,
+		},
 		TLSConfig: &tls.Config{
 			MinVersion:     tls.VersionTLS12,
 			GetCertificate: m.GetCertificate,

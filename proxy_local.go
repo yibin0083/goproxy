@@ -17,8 +17,7 @@ import (
 )
 
 type LocalHandler struct {
-	ServerName string
-	Fallback   *url.URL
+	Fallback *url.URL
 	*SimplePAM
 	*http.Transport
 }
