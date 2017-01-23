@@ -19,6 +19,7 @@ import (
 	"github.com/cloudflare/golibs/lrucache"
 	"github.com/phuslu/glog"
 	"github.com/phuslu/goproxy/httpproxy/helpers"
+	"github.com/phuslu/goproxy/httpproxy/proxy"
 	"github.com/phuslu/net/http2"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -142,11 +143,28 @@ func main() {
 					glog.Fatalf("url.Parse(%+v) error: %+v", server.ProxyFallback, err)
 				}
 			}
+
 			handlers[server.ServerName] = handler
 		case "pass":
 			handler := &PassHandler{
-				Transport: transport,
+				Transport: &http.Transport{},
 			}
+			*handler.Transport = *transport
+
+			fixedURL, err := url.Parse(server.ProxyPass)
+			if err != nil {
+				glog.Fatalf("url.Parse(%#v) error: %+v", server.ProxyPass, err)
+			}
+
+			dialer2, err := proxy.FromURL(fixedURL, dialer, nil)
+			if err != nil {
+				glog.Fatalf("proxy.FromURL(%#v) error: %s", fixedURL.String(), err)
+			}
+
+			handler.Transport.Dial = dialer2.Dial
+			handler.Transport.DialTLS = nil
+			handler.Transport.Proxy = nil
+
 			handlers[server.ServerName] = handler
 		default:
 			glog.Infof("Unsupported proxy_mode(%+v) of %#v", server.ProxyMode, server)
