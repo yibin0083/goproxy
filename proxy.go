@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -114,11 +115,18 @@ func main() {
 		DisableCompression:  false,
 	}
 
-	servername := config.Server[0].ServerName
+	server := config.Server[0]
 
 	handler := &LocalHandler{
-		ServerName: servername,
+		ServerName: server.ServerName,
 		Transport:  transport,
+	}
+
+	if server.ProxyFallback != "" {
+		handler.Fallback, err = url.Parse(server.ProxyFallback)
+		if err != nil {
+			glog.Fatalf("url.Parse(%+v) error: %+v", server.ProxyFallback, err)
+		}
 	}
 
 	domains := []string{}
