@@ -150,8 +150,13 @@ func main() {
 
 	http2.ConfigureServer(srv, &http2.Server{})
 
+	seen := make(map[string]struct{})
 	for _, server := range config.Server {
 		addr := server.Listen[0]
+		if _, ok := seen[addr]; ok {
+			continue
+		}
+		seen[addr] = struct{}{}
 		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			glog.Fatalf("Listen(%s) error: %s", addr, err)
