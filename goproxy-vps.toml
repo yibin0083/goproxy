@@ -1,0 +1,22 @@
+[default]
+log_level = 2
+
+[[server]]
+enabled = false
+listen = [":443"]
+server_name = "phus.lu"
+proxy_mode = "local"
+proxy_fallback = "http://127.0.0.1:80"
+proxy_auth_header = true
+proxy_auth_method = "pam"
+proxy_auth_args = ["sshd"]
+
+[[server]]
+enabled = false
+listen = [":443"]
+server_name = "proxy.phus.lu"
+proxy_mode = "pass"
+proxy_pass = "http://127.0.0.1:8080"
+proxy_auth_header = true
+proxy_auth_method = "pam"
+proxy_auth_args = ["sshd"]
