@@ -148,12 +148,12 @@ func (h *LocalHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		req.ProtoMajor = 1
 		req.ProtoMinor = 1
 		req.Proto = "HTTP/1.1"
+	}
 
-		if req.URL.Host == req.TLS.ServerName {
-			req.URL.Scheme = h.Fallback.Scheme
-			req.URL.Host = h.Fallback.Host
-			req.Host = h.Fallback.Host
-		}
+	if req.URL.Host == req.TLS.ServerName {
+		req.URL.Scheme = h.Fallback.Scheme
+		req.URL.Host = h.Fallback.Host
+		req.Host = h.Fallback.Host
 	}
 
 	resp, err := h.Transport.RoundTrip(req)
